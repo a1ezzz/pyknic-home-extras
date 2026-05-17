@@ -1,0 +1,8 @@
+.coverage
+.eggs
+.idea
+__pycache__
+build
+dist
+docs
+pyknic_home_extras.egg-info
