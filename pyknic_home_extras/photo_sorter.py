@@ -39,6 +39,8 @@ from pyknic.lib.io.aio_wrapper import AsyncWrapper
 from pyknic.lib.bellboy.app import BellBoyCommandHandler
 from pyknic.lib.fastapi.models.lobby import LobbyCommandResult, LobbyKeyValueFeedbackResult
 
+from pyknic_home_extras.version import __version__
+
 
 class PhotoSorterCommandModel(pydantic.BaseModel):
 
@@ -124,7 +126,7 @@ class BellBoyPhotoSorterCommand(BellBoyCommandHandler):
         else:
             base_path = f'Unknown{os.sep}photo'
 
-        file_extension = os.path.splitext(file_path)[1]
+        file_extension = os.path.splitext(file_path)[1].lower()
 
         result = f'{self._args.output}{os.sep}{base_path}{file_extension}'
         file_suffix = None
@@ -186,5 +188,6 @@ class BellBoyPhotoSorterCommand(BellBoyCommandHandler):
                 'files_processed': files_processed,
                 'files_copied': files_copied,
                 'files_skipped': files_skipped
-            }
+            },
+            plugin_version=f'pyknic-home-extras:{__version__}'
         )
