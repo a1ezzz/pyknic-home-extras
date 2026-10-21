@@ -33,6 +33,7 @@ import typing
 
 import magic
 import pydantic
+import pydantic_settings
 
 from pyknic.lib.log import Logger
 from pyknic.lib.io.aio_wrapper import AsyncWrapper
@@ -47,6 +48,12 @@ class PhotoSorterCommandModel(pydantic.BaseModel):
     input: typing.List[str] = pydantic.Field(description='source files/directories to sort')
 
     output: str = pydantic.Field(description='destination directory')
+
+    video_mode: pydantic_settings.CliImplicitFlag[bool] = pydantic.Field(
+        validation_alias=pydantic.AliasChoices('video-mode'),
+        default=False,
+        description='whether to sort video files instead of photos'
+    )
 
 
 class BellBoyPhotoSorterCommand(BellBoyCommandHandler):
@@ -123,6 +130,8 @@ class BellBoyPhotoSorterCommand(BellBoyCommandHandler):
         if exif_date and exif_date != '0000:00:00 00:00:00':
             parsed_date = datetime.datetime.strptime(exif_date, '%Y:%m:%d %H:%M:%S')
             base_path = parsed_date.strftime(f'%Y{os.sep}%m-%B{os.sep}%d_%B_%Y_%H-%M-%S')
+        elif self._args.video_mode:
+            base_path = f'Unknown{os.sep}video'
         else:
             base_path = f'Unknown{os.sep}photo'
 
@@ -156,13 +165,18 @@ class BellBoyPhotoSorterCommand(BellBoyCommandHandler):
 
         files_processed = 0
         files_copied = 0
+        duplicate_files = 0
         files_skipped = 0
+
+        mime_type_prefix = 'video/' if self._args.video_mode else 'image/'
 
         for file_path in self.__files_generator():
 
             files_processed += 1
 
-            if self.__mime_type(file_path).startswith('image/'):
+            mime_type = self.__mime_type(file_path)
+
+            if mime_type.startswith(mime_type_prefix):
                 destination_file = self.__file_destination(file_path)
                 if destination_file is not None:
 
@@ -177,9 +191,10 @@ class BellBoyPhotoSorterCommand(BellBoyCommandHandler):
 
                 else:
                     Logger.info(f'The "{file_path}" file has been skipped because of duplicate')
+                    duplicate_files += 1
 
             else:
-                Logger.info(f'Skipping non-image file -- "{file_path}"')
+                Logger.info(f'Skipping non-{mime_type_prefix}* file -- "{file_path}" ({mime_type})')
 
             files_skipped += 1
 
@@ -187,6 +202,7 @@ class BellBoyPhotoSorterCommand(BellBoyCommandHandler):
             kv_result={
                 'files_processed': files_processed,
                 'files_copied': files_copied,
+                'duplicate_files': duplicate_files,
                 'files_skipped': files_skipped
             },
             plugin_version=f'pyknic-home-extras:{__version__}'
