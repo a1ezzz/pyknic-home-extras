@@ -124,6 +124,8 @@ class BellBoyPhotoSorterCommand(BellBoyCommandHandler):
 
         exif_info = self.__get_exif(file_path)
         exif_date = exif_info.get('DateTimeOriginal')
+        if exif_date is None:
+            exif_date = exif_info.get('MetadataDate')
 
         Logger.info(f'The file "{file_path}". EXIF date is: {exif_date}')
 
